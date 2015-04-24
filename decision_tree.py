@@ -3,6 +3,7 @@ import pandas as pd
 import argparse
 import scipy.stats as stats
 from pprint import pprint
+import pickle
 
 import sys
 # sys.setrecursionlimit(10000)
@@ -65,7 +66,6 @@ def preprocess_dataframe(df, class_column):
     df = handle_continuous_attributes(df, class_column)
     df = df.fillna(method="ffill")
 
-
     return df
 
 def handle_continuous_attributes(df, class_column):
@@ -112,12 +112,56 @@ def find_split_points(df, column_name, class_column):
 
     # return (best_split, df[best_split])
 
+def prune_tree(tree, validation_data):
+    '''Takes a tree (in the form of a dictionary of dictionaries),
+    and validation data (in the form of a pandas data frame).
+    Checks each of the terminal nodes of the tree to see if removing
+    them will improve the performance on the validation set.'''
+    validation_data = classify(tree, validation_data)
+
+def classify(tree, data):
+	'''Takes a decision tree, and a dataset, and adds a "predicted"
+    column of predicted class labels.'''
+    # Created an empty column in the data frame
+    if not data['predicted']:
+        data['predicted'] = np.nan
+    else:
+        raise KeyError('column "predicted" already exists in the data frame')
+    # Iterate through each item in the set, and get the classification
+    for i, row in data.iterrows():
+        data['predicted'][i] = classify_instance(tree, row)
+
+    return data
+
+def testIneq(row, expression):
+    '''Given a row of data, and an expression, determines whether the
+    expression is a category or is an inequality. If it's an inequality,
+    it returns the evaluation of the inequality (True or False).'''
+    # Split the expression
+    exprSplit = expression.split(' ')
+    # If the expression has 3 parts, it's a numeric; Otherwise, it's categorical, and we just return the value
+    if len(exprSplit) == 1:
+        return row[expression]
+    else:
+        try:
+            column, expr, value = exprSplit
+        except:
+            print "Poorly formed expression: {}".format(expression)
+            return None
+        if expr == "<=":
+            return row[column] <= float(value)
+        if expr == ">":
+            return row[column] > float(value)
+        else:
+            raise ValueError('Malformed inequality: {}'.format(expression))
 
 
 if __name__ == "__main__":
     # set up argument parsing
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--data')
+    parser.add_argument('-p', '--prune', action='store_true')
+    parser.add_argument('-v', '--validation_data')
 
     args = parser.parse_args()
 
@@ -125,5 +169,11 @@ if __name__ == "__main__":
     data_table = pd.read_csv(args.data, na_values=["?"])
     data_table = preprocess_dataframe(data_table, "winner")
     tree = make_tree(data_table,"winner")
+    if args.prune:
+        if args.validation_data:
+            validation_data_table = pd.read_csv(args.validation_data)
+            tree = prune_tree(tree, validation_data_table)
+    with open('finished_tree.pkl', 'wb') as o:
+        pickle.dump(tree, o)
     pprint(tree)
 
