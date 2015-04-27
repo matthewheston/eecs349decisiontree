@@ -4,6 +4,7 @@ import argparse
 import scipy.stats as stats
 from pprint import pprint
 import pickle
+import csv
 
 import sys
 # sys.setrecursionlimit(10000)
@@ -60,17 +61,22 @@ def get_information_gain(df):
 
     return stats.entropy([sum(df["target"]), len(df["target"]) - sum(df["target"])], base=2) - sum(entropy_values)
 
-def preprocess_dataframe(df, class_column):
+def preprocess_dataframe(df, metadata, class_column):
     # remove whitespace from column names
     df.columns = map(lambda c: c.strip(), df.columns)
-    df = handle_continuous_attributes(df, class_column)
+    df = handle_continuous_attributes(df, metadata, class_column)
     df = df.fillna(method="ffill")
 
     return df
 
-def handle_continuous_attributes(df, class_column):
+def handle_continuous_attributes(df, metadata_file, class_column):
     # first, find continuous attributes
-    continuous_columns = [c for c in df.columns if "-NUM" in c and not ">" in c]
+    with open(metadata_file, 'rb') as f:
+        reader = csv.reader(f)
+        column_metadata = reader.next()
+    continuous_columns = [df.columns[i] for i in range(len(df.columns)) if
+            column_metadata[i] == 'numeric']
+    print continuous_columns
 
     # now discretize them
     for column in continuous_columns:
@@ -120,36 +126,36 @@ def prune_tree(tree, validation_data):
     validation_data = classify(tree, validation_data)
 
 def classify(tree, data):
-	'''Takes a decision tree, and a dataset, and adds a "predicted"
+    '''Takes a decision tree, and a dataset, and adds a "predicted"
     column of predicted class labels.'''
     # Created an empty column in the data frame
-    if not data['predicted']:
-        data['predicted'] = np.nan
-    else:
+    if 'predicted' in list(data):
         raise KeyError('column "predicted" already exists in the data frame. Please rename this column')
+    else:
+        data['predicted'] = ''
     # Iterate through each item in the set, and get the classification
     for i, row in data.iterrows():
         data['predicted'][i] = classify_instance(tree, row)
+    return None
 
-    return data
 
-
-def clasify_instance(tree, row):
+def classify_instance(tree, row):
     label = None
     if not tree:
         raise ValueError("No attributes left - should be a leaf node here")
     # Figure out if this is a leaf node. If so, return the node value
-    if len(tree) == 1:
+    if len(tree.values()) == 1:
         return tree
     else:
+        print 'opening tree'
         # Get the key, which is the node name
         node = tree.keys()
         # Test the inequality with this data
-        node_value = testIneq(row, node)
+        node_value = test_ineq(row, node)
         return classify_instance(tree[node_value], row)
 
 
-def testIneq(row, expression):
+def test_ineq(row, expression):
     '''Given a row of data, and an expression, determines whether the
     expression is a category or is an inequality. If it's an inequality,
     it returns the evaluation of the inequality (True or False).'''
@@ -171,25 +177,54 @@ def testIneq(row, expression):
         else:
             raise ValueError('Malformed inequality: {}'.format(expression))
 
+def accuracy_score(vec1, vec2):
+    '''Given two boolean lists/vectors/Series, computes the ratio of values which are
+    the same in both vectors'''
+    return float(sum(vec1 * vec2)) / len(vec1)
+
+def get_class_column(metadata_file, dataFrame):
+    '''Given a metadata_file which includes a "class" designation,
+    and a data frame. Returns the index of the class column'''
+    with open(metadata_file, 'rb') as f:
+        reader = csv.reader(f)
+        column_metadata = reader.next() 
+        try:
+            index = column_metadata.index('class')
+            return list(dataFrame)[index]
+        except ValueError:
+            print '"class" not in metadata'
+
 
 if __name__ == "__main__":
     # set up argument parsing
     parser = argparse.ArgumentParser()
-    parser.add_argument('-d', '--data')
-    parser.add_argument('-p', '--prune', action='store_true')
+    parser.add_argument('-d', '--data', required=True)
+    parser.add_argument('-m', '--metadata', required=True)
     parser.add_argument('-v', '--validation_data')
+    parser.add_argument('-p', '--prune', action='store_true')
 
     args = parser.parse_args()
 
     # read our data into pandas dataframe
     data_table = pd.read_csv(args.data, na_values=["?"])
-    data_table = preprocess_dataframe(data_table, "winner")
-    tree = make_tree(data_table,"winner")
-    if args.prune:
-        if args.validation_data:
-            validation_data_table = pd.read_csv(args.validation_data)
-            tree = prune_tree(tree, validation_data_table)
+    # Get the metadata, and preprocess
+    class_column = get_class_column(args.metadata, data_table)
+    data_table = preprocess_dataframe(data_table, args.metadata, class_column)
+    print "Making decision tree..."
+    tree = make_tree(data_table, class_column)
+    if args.validation_data:
+        validation_df = pd.read_csv(args.validation_data, na_values=["?"])
+        validation_df.columns = map(lambda c: c.strip(), validation_df.columns)
+        if args.prune:
+            print "Pruning tree..."
+            tree = prune_tree(tree, validation_df)
+        # Get validation data accuracy
+        print "Classifying accuracy..."
+        classify(tree, validation_df)
+        print validation_df.head()
+        validation_accuracy = accuracy_score(validation_df[class_column],
+                validation_df['predicted'])
+        print validation_accuracy
     with open('finished_tree.pkl', 'wb') as o:
         pickle.dump(tree, o)
     pprint(tree)
-
