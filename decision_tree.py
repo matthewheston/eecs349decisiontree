@@ -126,12 +126,28 @@ def classify(tree, data):
     if not data['predicted']:
         data['predicted'] = np.nan
     else:
-        raise KeyError('column "predicted" already exists in the data frame')
+        raise KeyError('column "predicted" already exists in the data frame. Please rename this column')
     # Iterate through each item in the set, and get the classification
     for i, row in data.iterrows():
         data['predicted'][i] = classify_instance(tree, row)
 
     return data
+
+
+def clasify_instance(tree, row):
+    label = None
+    if not tree:
+        raise ValueError("No attributes left - should be a leaf node here")
+    # Figure out if this is a leaf node. If so, return the node value
+    if len(tree) == 1:
+        return tree
+    else:
+        # Get the key, which is the node name
+        node = tree.keys()
+        # Test the inequality with this data
+        node_value = testIneq(row, node)
+        return classify_instance(tree[node_value], row)
+
 
 def testIneq(row, expression):
     '''Given a row of data, and an expression, determines whether the
