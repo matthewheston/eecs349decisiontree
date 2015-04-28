@@ -140,7 +140,6 @@ def partitionData(binaryData, n):
 		startOfRange = endOfRange
 	return partitionList
 
-def get_entropy(
 
 def bestFeature(bData, classLabel):
 	'''Takes a partitioned binary data file and a class label. Returns the feature 
