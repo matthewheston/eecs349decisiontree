@@ -18,11 +18,11 @@ def make_tree(df, class_column, default=0):
     contains our output.
     """
     if not len(df.index):
-        return default
+        return {'label':default}
     if len(df[class_column].unique()) == 1:
-        return df[class_column].unique()[0]
+        return {'label':df[class_column].unique()[0]}
     if len(df.columns) == 1:
-        return df[class_column].value_counts().idxmax()
+        return {'label':df[class_column].value_counts().idxmax()}
 
     # base cases covered, let's get to our recursive bit
     best_attribute = find_best_attribute(df, class_column)
