@@ -5,3 +5,5 @@
 Figure out why tree is created with strings instead of bools
 
 What to do when a leaf doesn't exist - e.g., in some parts of tree, pitcher 3 might exist, but not pitcher 2.
+
+Should we switch to objects? Brittle right now because some column names would break things ('total', 'pos')

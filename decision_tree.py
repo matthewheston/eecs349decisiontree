@@ -118,24 +118,102 @@ def find_split_points(df, column_name, class_column):
     # return (best_split, df[best_split])
 
 
-def prune_tree(labeled_tree):
-    '''Takes a tree (in the form of a dictionary of dictionaries),
+def prune_tree(tree):
+    '''
+	Takes a tree (in the form of a dictionary of dictionaries),
     and validation data (in the form of a pandas data frame).
     Checks each of the terminal nodes of the tree to see if removing
-    them will improve the performance on the validation set.'''
+    them will improve the performance on the validation set.
+	'''
+    print "New Tree: {}".format(tree)
     if is_leaf(tree):
-        return error(tree)
+        print get_error(tree)
+        return get_error(tree)
     else:
-        error = sum([prune_tree(labeled_tree[x]) for x in labeled_tree])
-        if error < 
+        attr = [x for x in tree if x not in ['total', 'pos']][0]
+        #print "Next attribute: {}".format(attr)
+        #print "Attribute values: {}".format([x for x in tree[attr]])
+        #print "Attribute value trees: {}".format([tree[attr][x] for x in tree[attr]])
+        # Recurse - summing all of the values for the attribute
+        error = 0
+        for x in tree[attr]:
+            print "Pruning {}".format(x)
+            prune_tree(tree[attr][x])
+            #print currError
+            # error += currError
+        #errors = [prune_tree(tree[attr][x]) for x in tree[attr]]
+        #print errors
+        #error = sum(errors)
+        # If the error is greater than than error from making this
+        # a leaf, then make this a leaf instead
+        if error < min(tree['pos'], tree['total'] - tree['pos']):
+            print "removing {}".format(attr)
+            tree.pop(attr)
+            if tree['pos'] > tree['total'] - tree['pos']:
+                tree['label'] = 1
+                return tree['total'] - tree['pos']
+            else:
+                tree['label'] = 0
+                return tree['pos']
 
-def classify(tree, validationData):
-    '''Takes a tree and validation data, returns a labeled
-    tree, with counts for how often each 
+
+def is_leaf(tree):
+    return 'label' in tree.keys()
+
+def get_error(tree):
+    print 'Getting Error'
+    if not tree['total']:
+        return 0
+    if tree['label'] == 1:
+        return tree['total'] - tree['pos']
+    else:
+        return tree['pos']
+
+def classify(tree, validationData, class_column):
+    '''
+    Takes a tree and validation data, modifies the tree
+    to label it with counts for how often each class value
+    appears in the validation set at each node.
+    '''
+    for i, row in validationData.iterrows():
+        classify_instance(tree, row, class_column)
+    return tree
+
+def classify_instance(tree, instance, class_column):
+    '''
+    Takes a tree, a validation instance, and the class column.
+    Modifies the tree in place to add the count for each
+    class column value to each node.
+    '''
+    # Get the class label for the instance and add it to the
+    # current node
+    label = instance[class_column]
+    try:
+        tree['total'] +=1
+        tree['pos'] += 1 * label
+    except KeyError:
+        tree['total'] = 1
+        tree['pos'] = 1 * label
+    # Check if this is a leaf node. If not, then traverse the tree
+    try:
+        tree['label']
+    except KeyError:
+        # Get attribute (it's whatever is left)
+        attr = [x for x in tree.keys() if x not in['total','pos']][0]
+        attrVal = test_ineq(instance, attr)
+        # Try to get the next node down the tree.
+        try:
+            classify_instance(tree[attr][attrVal],
+                    instance, class_column)
+        # If the value isn't in the tree, there's nothing to do.
+        except KeyError:
+            pass
 
 def predict(tree, data):
-    '''Takes a decision tree, and a dataset, and adds a "predicted"
-    column of predicted class labels.'''
+    '''
+	Takes a decision tree, and a dataset, and adds a "predicted"
+    column of predicted class labels.
+	'''
     # Created an empty column in the data frame
     if 'predicted' in list(data):
         raise KeyError('column "predicted" already exists in the data frame. Please rename this column')
@@ -165,9 +243,11 @@ def predict_instance(tree, row):
 
 
 def test_ineq(row, expression):
-    '''Given a row of data, and an expression, determines whether the
+    '''
+	Given a row of data, and an expression, determines whether the
     expression is a category or is an inequality. If it's an inequality,
-    it returns the evaluation of the inequality (True or False).'''
+    it returns the evaluation of the inequality (True or False).
+	'''
     # Split the expression
     exprSplit = expression.split(' ')
     # If the expression has 3 parts, it's a numeric; Otherwise, it's categorical, and we just return the value
@@ -187,13 +267,17 @@ def test_ineq(row, expression):
             raise ValueError('Malformed inequality: {}'.format(expression))
 
 def accuracy_score(vec1, vec2):
-    '''Given two boolean lists/vectors/Series, computes the ratio of values which are
-    the same in both vectors'''
+    '''
+	Given two boolean lists/vectors/Series, computes the ratio
+    of values which are the same in both vectors
+	'''
     return float(sum(vec1 * vec2)) / len(vec1)
 
 def get_class_column(metadata_file, dataFrame):
-    '''Given a metadata_file which includes a "class" designation,
-    and a data frame. Returns the index of the class column'''
+    '''
+	Given a metadata_file which includes a "class" designation,
+    and a data frame. Returns the index of the class column
+	'''
     with open(metadata_file, 'rb') as f:
         reader = csv.reader(f)
         column_metadata = reader.next() 
@@ -224,11 +308,11 @@ if __name__ == "__main__":
     pprint(tree)
     if args.validation_data:
         validation_df = pd.read_csv(args.validation_data, na_values=["?"])
-        validation_df.columns = map(lambda c: c.strip(), validation_df.columns)
         validation_df = preprocess_dataframe(validation_df, args.metadata, class_column, False)
         if args.prune:
             print "Pruning tree..."
-            tree = prune_tree(tree, validation_df)
+            labeled_tree = classify(tree, validation_df, class_column)
+            error = prune_tree(labeled_tree)
         # Get validation data accuracy
         print "Classifying accuracy..."
         classify(tree, validation_df)
