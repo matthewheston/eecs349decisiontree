@@ -69,14 +69,14 @@ def preprocess_dataframe(df, metadata, class_column, handle_continuous=True):
 
     return df
 
+
 def handle_continuous_attributes(df, metadata_file, class_column):
     # first, find continuous attributes
     with open(metadata_file, 'rb') as f:
         reader = csv.reader(f)
         column_metadata = reader.next()
     continuous_columns = [df.columns[i] for i in range(len(df.columns)) if
-            column_metadata[i] == 'numeric']
-
+                          column_metadata[i] == 'numeric']
     # now discretize them
     for column in continuous_columns:
         best_split = find_split_points(pd.DataFrame({"attr": df[column], class_column: df[class_column]}), column, class_column)
@@ -118,14 +118,22 @@ def find_split_points(df, column_name, class_column):
     # return (best_split, df[best_split])
 
 
-def prune_tree(tree, validation_data):
+def prune_tree(labeled_tree):
     '''Takes a tree (in the form of a dictionary of dictionaries),
     and validation data (in the form of a pandas data frame).
     Checks each of the terminal nodes of the tree to see if removing
     them will improve the performance on the validation set.'''
-    validation_data = classify(tree, validation_data)
+    if is_leaf(tree):
+        return error(tree)
+    else:
+        error = sum([prune_tree(labeled_tree[x]) for x in labeled_tree])
+        if error < 
 
-def classify(tree, data):
+def classify(tree, validationData):
+    '''Takes a tree and validation data, returns a labeled
+    tree, with counts for how often each 
+
+def predict(tree, data):
     '''Takes a decision tree, and a dataset, and adds a "predicted"
     column of predicted class labels.'''
     # Created an empty column in the data frame
@@ -135,11 +143,11 @@ def classify(tree, data):
         data['predicted'] = ''
     # Iterate through each item in the set, and get the classification
     for i, row in data.iterrows():
-        data['predicted'][i] = classify_instance(tree, row)
+        data['predicted'][i] = predict_instance(tree, row)
     return None
 
 
-def classify_instance(tree, row):
+def predict_instance(tree, row):
     label = None
     # Figure out if this is a leaf node. If so, return the node value
     # print tree.values()
@@ -150,10 +158,9 @@ def classify_instance(tree, row):
         # Test the inequality with this data
         node_value = test_ineq(row, node)
         print node_value
-        return classify_instance(tree[node][node_value], row)
+        return predict_instance(tree[node][node_value], row)
     # If the subtree doesn't exist, then we're at a node
     except AttributeError:
-        print tree
         return tree
 
 
