@@ -1,3 +1,7 @@
 - Pruning
 - Validation results
 - Filling in test results
+
+Figure out why tree is created with strings instead of bools
+
+What to do when a leaf doesn't exist - e.g., in some parts of tree, pitcher 3 might exist, but not pitcher 2.

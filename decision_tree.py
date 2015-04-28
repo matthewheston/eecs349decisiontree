@@ -35,7 +35,6 @@ def make_tree(df, class_column, default=0):
 
         tree[best_attribute][value] = subtree
 
-
     return tree
 
 
@@ -61,11 +60,12 @@ def get_information_gain(df):
 
     return stats.entropy([sum(df["target"]), len(df["target"]) - sum(df["target"])], base=2) - sum(entropy_values)
 
-def preprocess_dataframe(df, metadata, class_column):
+def preprocess_dataframe(df, metadata, class_column, handle_continuous=True):
     # remove whitespace from column names
     df.columns = map(lambda c: c.strip(), df.columns)
-    df = handle_continuous_attributes(df, metadata, class_column)
-    df = df.fillna(method="ffill")
+    if handle_continuous:
+        df = handle_continuous_attributes(df, metadata, class_column)
+    df = df.fillna(method="bfill")
 
     return df
 
@@ -76,7 +76,6 @@ def handle_continuous_attributes(df, metadata_file, class_column):
         column_metadata = reader.next()
     continuous_columns = [df.columns[i] for i in range(len(df.columns)) if
             column_metadata[i] == 'numeric']
-    print continuous_columns
 
     # now discretize them
     for column in continuous_columns:
@@ -118,6 +117,7 @@ def find_split_points(df, column_name, class_column):
 
     # return (best_split, df[best_split])
 
+
 def prune_tree(tree, validation_data):
     '''Takes a tree (in the form of a dictionary of dictionaries),
     and validation data (in the form of a pandas data frame).
@@ -141,18 +141,20 @@ def classify(tree, data):
 
 def classify_instance(tree, row):
     label = None
-    if not tree:
-        raise ValueError("No attributes left - should be a leaf node here")
     # Figure out if this is a leaf node. If so, return the node value
-    if len(tree.values()) == 1:
-        return tree
-    else:
-        print 'opening tree'
+    # print tree.values()
+    try:
         # Get the key, which is the node name
-        node = tree.keys()
+        node = tree.keys()[0]
+        print node
         # Test the inequality with this data
         node_value = test_ineq(row, node)
-        return classify_instance(tree[node_value], row)
+        print node_value
+        return classify_instance(tree[node][node_value], row)
+    # If the subtree doesn't exist, then we're at a node
+    except AttributeError:
+        print tree
+        return tree
 
 
 def test_ineq(row, expression):
@@ -171,9 +173,9 @@ def test_ineq(row, expression):
             print "Poorly formed expression: {}".format(expression)
             return None
         if expr == "<=":
-            return row[column] <= float(value)
+            return str(row[column] <= float(value))
         if expr == ">":
-            return row[column] > float(value)
+            return str(row[column] > float(value))
         else:
             raise ValueError('Malformed inequality: {}'.format(expression))
 
@@ -212,19 +214,20 @@ if __name__ == "__main__":
     data_table = preprocess_dataframe(data_table, args.metadata, class_column)
     print "Making decision tree..."
     tree = make_tree(data_table, class_column)
+    pprint(tree)
     if args.validation_data:
         validation_df = pd.read_csv(args.validation_data, na_values=["?"])
         validation_df.columns = map(lambda c: c.strip(), validation_df.columns)
+        validation_df = preprocess_dataframe(validation_df, args.metadata, class_column, False)
         if args.prune:
             print "Pruning tree..."
             tree = prune_tree(tree, validation_df)
         # Get validation data accuracy
         print "Classifying accuracy..."
         classify(tree, validation_df)
-        print validation_df.head()
+        #print validation_df.head()
         validation_accuracy = accuracy_score(validation_df[class_column],
                 validation_df['predicted'])
         print validation_accuracy
     with open('finished_tree.pkl', 'wb') as o:
         pickle.dump(tree, o)
-    pprint(tree)
