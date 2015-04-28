@@ -120,8 +120,7 @@ def find_split_points(df, column_name, class_column):
 
 def prune_tree(tree):
     '''
-	Takes a tree (in the form of a dictionary of dictionaries),
-    and validation data (in the form of a pandas data frame).
+	Takes a labeled tree, created with the classify_tree function.
     Checks each of the terminal nodes of the tree to see if removing
     them will improve the performance on the validation set.
 	'''
