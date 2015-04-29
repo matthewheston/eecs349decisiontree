@@ -117,35 +117,27 @@ def find_split_points(df, column_name, class_column):
 
     # return (best_split, df[best_split])
 
-
 def prune_tree(tree):
     '''
 	Takes a labeled tree, created with the classify_tree function.
     Checks each of the terminal nodes of the tree to see if removing
     them will improve the performance on the validation set.
 	'''
-    print "New Tree: {}".format(tree)
+    print tree
     if is_leaf(tree):
-        print get_error(tree)
         return get_error(tree)
     else:
         attr = [x for x in tree if x not in ['total', 'pos']][0]
-        #print "Next attribute: {}".format(attr)
-        #print "Attribute values: {}".format([x for x in tree[attr]])
-        #print "Attribute value trees: {}".format([tree[attr][x] for x in tree[attr]])
-        # Recurse - summing all of the values for the attribute
-        error = 0
-        for x in tree[attr]:
-            print "Pruning {}".format(x)
-            prune_tree(tree[attr][x])
-            #print currError
-            # error += currError
-        #errors = [prune_tree(tree[attr][x]) for x in tree[attr]]
-        #print errors
-        #error = sum(errors)
+        error = sum([prune_tree(tree[attr][x]) for x in tree[attr]])
         # If the error is greater than than error from making this
         # a leaf, then make this a leaf instead
-        if error < min(tree['pos'], tree['total'] - tree['pos']):
+        print error
+        print tree['pos']
+        print tree['total']
+        print "Running this code"
+        if error <= min(tree['pos'], tree['total'] - tree['pos']):
+            return error
+        else:
             print "removing {}".format(attr)
             tree.pop(attr)
             if tree['pos'] > tree['total'] - tree['pos']:
@@ -160,13 +152,13 @@ def is_leaf(tree):
     return 'label' in tree.keys()
 
 def get_error(tree):
-    print 'Getting Error'
     if not tree['total']:
         return 0
     if tree['label'] == 1:
         return tree['total'] - tree['pos']
     else:
         return tree['pos']
+
 
 def classify(tree, validationData, class_column):
     '''
