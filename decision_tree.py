@@ -5,6 +5,7 @@ import scipy.stats as stats
 from pprint import pprint
 import pickle
 import csv
+import random
 
 import sys
 # sys.setrecursionlimit(10000)
@@ -212,20 +213,27 @@ def predict(tree, data):
 
 
 def predict_instance(tree, row):
-    label = None
-    # Figure out if this is a leaf node. If so, return the node value
-    # print tree.values()
-    try:
+    # if it's a leaf node, return the label
+    if 'label' in tree:
+        return tree['label']
+    else:
         # Get the key, which is the node name
-        node = tree.keys()[0]
+        node = [x for x in tree.keys() if x not in ['total', 'pos']][0]
         print node
         # Test the inequality with this data
         node_value = test_ineq(row, node)
         print node_value
-        return predict_instance(tree[node][node_value], row)
-    # If the subtree doesn't exist, then we're at a node
-    except AttributeError:
-        return tree
+        try:
+            return predict_instance(tree[node][node_value], row)
+        # If the node doesn't exist, that means the training set didn't have any examples.
+        # Figure out how to choose this
+        except KeyError:
+            return choose_prediction(tree)
+            print "{} is not a key in this dictionary".format(node_value)
+
+
+def choose_prediction(tree):
+    return 1 if random.random() > .5 else 0
 
 
 def test_ineq(row, expression):
@@ -302,7 +310,7 @@ if __name__ == "__main__":
             print "Accuracy: {}".format(1 - (error / len(validation_df.index)))
         # Get validation data accuracy
         print "Classifying accuracy..."
-        classify(tree, validation_df, class_column)
+        predict(labeled_tree, validation_df)
         #print validation_df.head()
         validation_accuracy = accuracy_score(validation_df[class_column],
                 validation_df['predicted'])
