@@ -123,7 +123,6 @@ def prune_tree(tree):
     Checks each of the terminal nodes of the tree to see if removing
     them will improve the performance on the validation set.
 	'''
-    print tree
     if is_leaf(tree):
         return get_error(tree)
     else:
@@ -131,14 +130,10 @@ def prune_tree(tree):
         error = sum([prune_tree(tree[attr][x]) for x in tree[attr]])
         # If the error is greater than than error from making this
         # a leaf, then make this a leaf instead
-        print error
-        print tree['pos']
-        print tree['total']
-        print "Running this code"
         if error <= min(tree['pos'], tree['total'] - tree['pos']):
             return error
         else:
-            print "removing {}".format(attr)
+            print "Removing {}".format(attr)
             tree.pop(attr)
             if tree['pos'] > tree['total'] - tree['pos']:
                 tree['label'] = 1
@@ -152,7 +147,7 @@ def is_leaf(tree):
     return 'label' in tree.keys()
 
 def get_error(tree):
-    if not tree['total']:
+    if 'total' not in tree:
         return 0
     if tree['label'] == 1:
         return tree['total'] - tree['pos']
@@ -300,13 +295,14 @@ if __name__ == "__main__":
     if args.validation_data:
         validation_df = pd.read_csv(args.validation_data, na_values=["?"])
         validation_df = preprocess_dataframe(validation_df, args.metadata, class_column, False)
+        labeled_tree = classify(tree, validation_df, class_column)
         if args.prune:
             print "Pruning tree..."
-            labeled_tree = classify(tree, validation_df, class_column)
             error = prune_tree(labeled_tree)
+            print "Accuracy: {}".format(1 - (error / len(validation_df.index)))
         # Get validation data accuracy
         print "Classifying accuracy..."
-        classify(tree, validation_df)
+        classify(tree, validation_df, class_column)
         #print validation_df.head()
         validation_accuracy = accuracy_score(validation_df[class_column],
                 validation_df['predicted'])
