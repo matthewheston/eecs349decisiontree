@@ -349,5 +349,5 @@ if __name__ == "__main__":
         validation_accuracy = accuracy_score(validation_df[class_column],
                 validation_df['predicted'])
         print "Accuracy: {}".format(validation_accuracy)
-    with open('finished_tree.pkl', 'wb') as o:
-        pickle.dump(labeled_tree, o)
+        with open('finished_tree.pkl', 'wb') as o:
+            pickle.dump(labeled_tree, o)
