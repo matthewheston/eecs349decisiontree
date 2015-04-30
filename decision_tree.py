@@ -140,7 +140,7 @@ def prune_tree(tree):
         if error < min(tree['pos'], tree['total'] - tree['pos']):
             return error
         else:
-            print "Removing {}".format(attr)
+            #print "Removing {}".format(attr)
             tree.pop(attr)
             if tree['pos'] > tree['total'] - tree['pos']:
                 tree['label'] = 1
@@ -210,19 +210,19 @@ def classify_instance(tree, instance, class_column):
         except KeyError:
             pass
 
-def predict(tree, data):
+def predict(tree, data, predict_col = 'predicted'):
     '''
 	Takes a decision tree, and a dataset, and adds a "predicted"
     column of predicted class labels.
 	'''
     # Created an empty column in the data frame
-    if 'predicted' in list(data):
-        raise KeyError('column "predicted" already exists in the data frame. Please rename this column')
+    if predict_col in list(data):
+        print 'Column "{}" already existed in the data frame, and is being overwritten.'.format(predict_col)
     else:
-        data['predicted'] = ''
+        data[predict_col] = ''
     # Iterate through each item in the set, and get the classification
     for i, row in data.iterrows():
-        data['predicted'][i] = predict_instance(tree, row)
+        data[predict_col][i] = predict_instance(tree, row)
     return None
 
 
@@ -323,6 +323,8 @@ if __name__ == "__main__":
     parser.add_argument('-m', '--metadata', required=True)
     parser.add_argument('-v', '--validation_data')
     parser.add_argument('-p', '--prune', action='store_true')
+    parser.add_argument('-o', '--output_pickle',
+            default='./finished_tree.pkl')
 
     args = parser.parse_args()
 
@@ -349,5 +351,5 @@ if __name__ == "__main__":
         validation_accuracy = accuracy_score(validation_df[class_column],
                 validation_df['predicted'])
         print "Accuracy: {}".format(validation_accuracy)
-    with open('finished_tree.pkl', 'wb') as o:
+    with open(args.output_pickle, 'wb') as o:
         pickle.dump(labeled_tree, o)
