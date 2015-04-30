@@ -129,10 +129,14 @@ def prune_tree(tree):
     if is_leaf(tree):
         return get_error(tree)
     else:
-        attr = [x for x in tree if x not in ['total', 'pos']][0]
+        attr = getAttr(tree)
         error = sum([prune_tree(tree[attr][x]) for x in tree[attr]])
         # If the error is the same or better from making this
         # a leaf, then make this a leaf instead
+        if no_examples(tree):
+            # If there aren't any examples of the current leaf,
+            # then there isn't any error.
+            return 0
         if error < min(tree['pos'], tree['total'] - tree['pos']):
             return error
         else:
@@ -145,6 +149,8 @@ def prune_tree(tree):
                 tree['label'] = 0
                 return tree['pos']
 
+def no_examples(tree):
+    return 'total' not in tree.keys()
 
 def is_leaf(tree):
     return 'label' in tree.keys()
@@ -157,6 +163,12 @@ def get_error(tree):
     else:
         return tree['pos']
 
+def getAttr(tree, ignoreList = ['total', 'pos']):
+    '''
+    Given a tree and a list of keys which are not attributes,
+    finds and returns the attribute that is to be examined
+    '''
+    return [x for x in tree if x not in ignoreList][0]
 
 def classify(tree, validationData, class_column):
     '''
@@ -188,7 +200,7 @@ def classify_instance(tree, instance, class_column):
         tree['label']
     except KeyError:
         # Get attribute (it's whatever is left)
-        attr = [x for x in tree.keys() if x not in['total','pos']][0]
+        attr = getAttr(tree)
         attrVal = test_ineq(instance, attr)
         # Try to get the next node down the tree.
         try:
@@ -220,7 +232,7 @@ def predict_instance(tree, row):
         return tree['label']
     else:
         # Get the key, which is the node name
-        node = [x for x in tree.keys() if x not in ['total', 'pos']][0]
+        node = getAttr(tree)
         # Test the inequality with this data
         node_value = test_ineq(row, node)
         try:
@@ -281,6 +293,7 @@ def get_class_column(metadata_file, dataFrame):
         except ValueError:
             print '"class" not in metadata'
 
+
 def make_learning_curve(training_df, validation_df, class_column, filename, training_sizes):
     accuracies = [] # store accuracies for each size here
 
@@ -322,7 +335,8 @@ if __name__ == "__main__":
     pprint(tree)
     if args.validation_data:
         validation_df = pd.read_csv(args.validation_data, na_values=["?"])
-        validation_df = preprocess_dataframe(validation_df, args.metadata, class_column, False)
+        validation_df = preprocess_dataframe(validation_df,
+                args.metadata, class_column, False)
         labeled_tree = classify(tree, validation_df, class_column)
         if args.prune:
             print "Pruning tree..."
@@ -331,9 +345,8 @@ if __name__ == "__main__":
         # Get validation data accuracy
         print "Classifying accuracy..."
         predict(labeled_tree, validation_df)
-        #print validation_df.head()
         validation_accuracy = accuracy_score(validation_df[class_column],
                 validation_df['predicted'])
-        print validation_accuracy
+        print "Accuracy: {}".format(validation_accuracy)
     with open('finished_tree.pkl', 'wb') as o:
-        pickle.dump(tree, o)
+        pickle.dump(labeled_tree, o)
