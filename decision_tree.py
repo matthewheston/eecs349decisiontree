@@ -284,6 +284,7 @@ def get_class_column(metadata_file, dataFrame):
 	Given a metadata_file which includes a "class" designation,
     and a data frame. Returns the index of the class column
 	'''
+    dataFrame.columns = map(lambda c: c.strip(), dataFrame.columns)
     with open(metadata_file, 'rb') as f:
         reader = csv.reader(f)
         column_metadata = reader.next() 
@@ -332,7 +333,7 @@ if __name__ == "__main__":
     data_table = preprocess_dataframe(data_table, args.metadata, class_column)
     print "Making decision tree..."
     tree = make_tree(data_table, class_column)
-    pprint(tree)
+    # pprint(tree)
     if args.validation_data:
         validation_df = pd.read_csv(args.validation_data, na_values=["?"])
         validation_df = preprocess_dataframe(validation_df,
