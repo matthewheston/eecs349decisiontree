@@ -6,6 +6,8 @@ from pprint import pprint
 import pickle
 import csv
 import random
+import matplotlib.pyplot as plt
+import math
 
 import sys
 # sys.setrecursionlimit(10000)
@@ -280,6 +282,26 @@ def get_class_column(metadata_file, dataFrame):
             return list(dataFrame)[index]
         except ValueError:
             print '"class" not in metadata'
+
+def make_learning_curve(training_df, validation_df, class_column, filename, training_sizes):
+    accuracies = [] # store accuracies for each size here
+
+    for size in training_sizes:
+        training = training_df.head(size)
+        tree = make_tree(training, class_column)
+        labeled_tree = classify(tree, validation_df, class_column)
+        predict(labeled_tree, validation_df)
+        validation_accuracy = accuracy_score(validation_df[class_column],
+                validation_df['predicted'])
+        accuracies.append(validation_accuracy)
+
+    # now that we have our Y (accuracies) and X (training_sizes), make plot
+    plt.plot(training_sizes, accuracies)
+    plt.xlabel("Training size")
+    plt.ylabel("Accuracy")
+    plt.title("Learning Curve")
+    plt.savefig(filename)
+
 
 
 if __name__ == "__main__":
