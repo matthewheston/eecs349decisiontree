@@ -215,6 +215,7 @@ def predict(tree, data):
 	Takes a decision tree, and a dataset, and adds a "predicted"
     column of predicted class labels.
 	'''
+    predictions = []
     # Created an empty column in the data frame
     if 'predicted' in list(data):
         raise KeyError('column "predicted" already exists in the data frame. Please rename this column')
@@ -222,8 +223,9 @@ def predict(tree, data):
         data['predicted'] = ''
     # Iterate through each item in the set, and get the classification
     for i, row in data.iterrows():
-        data['predicted'][i] = predict_instance(tree, row)
-    return None
+        predictions.append(predict_instance(tree, row))
+    data['predicted'] = pd.Series(predictions)
+    return data
 
 
 def predict_instance(tree, row):
@@ -345,7 +347,7 @@ if __name__ == "__main__":
             print "Accuracy: {}".format(1 - (error / len(validation_df.index)))
         # Get validation data accuracy
         print "Classifying accuracy..."
-        predict(labeled_tree, validation_df)
+        validation_df = predict(labeled_tree, validation_df)
         validation_accuracy = accuracy_score(validation_df[class_column],
                 validation_df['predicted'])
         print "Accuracy: {}".format(validation_accuracy)
