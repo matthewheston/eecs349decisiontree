@@ -131,9 +131,9 @@ def prune_tree(tree):
     else:
         attr = [x for x in tree if x not in ['total', 'pos']][0]
         error = sum([prune_tree(tree[attr][x]) for x in tree[attr]])
-        # If the error is greater than than error from making this
+        # If the error is the same or better from making this
         # a leaf, then make this a leaf instead
-        if error <= min(tree['pos'], tree['total'] - tree['pos']):
+        if error < min(tree['pos'], tree['total'] - tree['pos']):
             return error
         else:
             print "Removing {}".format(attr)
@@ -221,10 +221,8 @@ def predict_instance(tree, row):
     else:
         # Get the key, which is the node name
         node = [x for x in tree.keys() if x not in ['total', 'pos']][0]
-        print node
         # Test the inequality with this data
         node_value = test_ineq(row, node)
-        print node_value
         try:
             return predict_instance(tree[node][node_value], row)
         # If the node doesn't exist, that means the training set didn't have any examples.
@@ -267,7 +265,7 @@ def accuracy_score(vec1, vec2):
 	Given two boolean lists/vectors/Series, computes the ratio
     of values which are the same in both vectors
 	'''
-    return float(sum(vec1 * vec2)) / len(vec1)
+    return sum(vec1 == vec2) / float(len(vec1))
 
 def get_class_column(metadata_file, dataFrame):
     '''
