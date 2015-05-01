@@ -16,9 +16,9 @@ def tree_to_disjunctive_normal(tree):
                 # Create a new string to describe the next part of the
                 # tree. If this is the start of a string, don't include
                 # the AND
-                curr_string += '{}{} = {}'.format((curr_string != '(') * ' AND ',
-                        attr,x)
-                find_conditions(tree[attr][x], curr_string)
+                prefix = '' if curr_string == '(' else ' AND '
+                find_conditions(tree[attr][x], curr_string +
+                        '{}{} = {}'.format(prefix, attr, x))
     find_conditions(tree)
     return ' OR\n'.join(conditions)
 
