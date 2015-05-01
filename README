@@ -1,0 +1,27 @@
+Instructions for running our code:
+
+All code is written in python, and is to be run from the command line.
+
+First, a metadata file must be created. This is a simple, one-line CSV file, with one comma-separated value for each column in the dataset. The values describe each column as one of {numeric, categorical, class}. The outcome / predicted column should be "class", and there should only be one of these.
+
+Creating a Tree
+================
+For this, use the decision_tree.py script, from the command line. There are two required command-line options, and three optional. The training data should be passed with the -d flag, and the metadata after the -m flag. To test the tree against a validation set, pass the validation data after the -v flag. The accuracy will be printed to the terminal. If the validation set should be used for pruning, add the -p flag.
+
+By default, the tree will be saved as a Python pickle file named finished_tree.pkl in the current directory. To change this, pass the -o flag.
+
+Example: python decision_tree.py -d ../btrain.csv -v ../bvalidate.csv -m ../metadata.csv -o pruned_tree.pkl -p
+
+This example would use the btrain.csv data to train on, would prune that tree based on the bvalidate.csv data, and would create a file named pruned_tree.pkl.
+
+Disjunctive Normal Form
+=======================
+To convert a tree into disjunctive normal form, use the tree_to_dnf.py script. Pass the pickle version of the decision tree after the -d flag, and the location of the output file after the -o flag.
+
+Example: python tree_to_dnf.py -d pruned_tree.pkl -o pruned_tree_DNF.txt
+
+Predicting Test Data
+====================
+To predict the test data, run the label_test_data.py script, passing the test data after the -t flag, the pickled version of the tree after the -d flag, and the output file after the -o flag.
+
+Example: python label_test_data.py -t ../btest.csv -d pruned_tree.pkl -o btest_predicted.csv
