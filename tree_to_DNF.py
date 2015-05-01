@@ -7,7 +7,6 @@ def tree_to_disjunctive_normal(tree):
     the disjunctive normal representation of the tree'''
     conditions = []
     def find_conditions(tree, curr_string = '('):
-        print curr_string
         if is_leaf(tree):
             if tree['label'] == 1:
                 conditions.append(curr_string + ')')
@@ -25,12 +24,12 @@ def tree_to_disjunctive_normal(tree):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('-t', '--tree', required=True)
+    parser.add_argument('-d', '--decision_tree', required=True)
     parser.add_argument('-o', '--output', required=True)
 
     args = parser.parse_args()
 
-with open(args.tree, 'rb') as t:
+with open(args.decision_tree, 'rb') as t:
     tree = pickle.load(t)
 
 with open(args.output, 'wb') as o:
