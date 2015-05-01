@@ -63,12 +63,16 @@ def get_information_gain(df):
 
     return stats.entropy([sum(df["target"]), len(df["target"]) - sum(df["target"])], base=2) - sum(entropy_values)
 
-def preprocess_dataframe(df, metadata, class_column, handle_continuous=True):
+def preprocess_dataframe(df, metadata = '', class_column = '', handle_continuous=True):
     # remove whitespace from column names
     df.columns = map(lambda c: c.strip(), df.columns)
     if handle_continuous:
         df = handle_continuous_attributes(df, metadata, class_column)
-    df = df.fillna(method="bfill")
+    # Fill NA by interpolation
+    df = df.interpolate()
+    # Fill any remaining NA with the mean
+    df.fillna(df.mean())
+
 
     return df
 
@@ -242,8 +246,8 @@ def predict_instance(tree, row):
         # If the node doesn't exist, that means the training set didn't have any examples.
         # Figure out how to choose this
         except KeyError:
+            print "{} is not an instance in this part of the dictionary".format(node_value)
             return choose_prediction(tree)
-            print "{} is not a key in this dictionary".format(node_value)
 
 
 def choose_prediction(tree):

@@ -1,7 +1,7 @@
 import pickle
 import argparse
 import pandas as pd
-from decision_tree import predict
+from decision_tree import predict, preprocess
 
 
 if __name__ == "__main__":
@@ -16,8 +16,8 @@ with open(args.decision_tree, 'rb') as t:
     tree = pickle.load(t)
 
 with open(args.test_data) as f:
-    test_df = pd.read_csv(f)
-    test_df.columns = map(lambda c: c.strip(), test_df.columns)
+    test_df = pd.read_csv(f, na_values=["?"])
+    test_df.columns = preprocess(test_df, handle_continuous=False)
 
 predict(tree, test_df, 'winner')
 test_df.to_csv(args.output)
