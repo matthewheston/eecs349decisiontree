@@ -68,10 +68,7 @@ def preprocess_dataframe(df, metadata = '', class_column = '', handle_continuous
     df.columns = map(lambda c: c.strip(), df.columns)
     if handle_continuous:
         df = handle_continuous_attributes(df, metadata, class_column)
-    # Fill NA by interpolation
-    df = df.interpolate()
-    # Fill any remaining NA with the mean
-    df.fillna(df.mean())
+    df = df.fillna(method='bfill')
 
 
     return df
@@ -246,7 +243,6 @@ def predict_instance(tree, row):
         # If the node doesn't exist, that means the training set didn't have any examples.
         # Figure out how to choose this
         except KeyError:
-            print "{} is not an instance in this part of the dictionary".format(node_value)
             return choose_prediction(tree)
 
 
@@ -350,7 +346,6 @@ if __name__ == "__main__":
         if args.prune:
             print "Pruning tree..."
             error = prune_tree(labeled_tree)
-            print "Accuracy: {}".format(1 - (error / len(validation_df.index)))
         # Get validation data accuracy
         print "Classifying accuracy..."
         validation_df = predict(labeled_tree, validation_df)
