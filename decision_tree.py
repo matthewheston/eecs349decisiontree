@@ -29,6 +29,9 @@ def make_tree(df, class_column, default=0):
 
     # base cases covered, let's get to our recursive bit
     best_attribute = find_best_attribute(df, class_column)
+    # if no attributes provide information gain, then make this a leaf
+    if not best_attribute:
+        return {'label':df[class_column].value_counts().idxmax()}
     tree = {best_attribute:{}}
 
     for value in df[best_attribute].unique():
@@ -37,17 +40,27 @@ def make_tree(df, class_column, default=0):
         subtree = make_tree(subset_data, class_column)
 
         tree[best_attribute][value] = subtree
-
     return tree
 
 
-def find_best_attribute(df, class_column):
+def find_best_attribute(df, class_column, alpha = 0):
+    '''
+    Takes a data frame, a class column, and an alpha value. Returns
+    the attribute with the most information gain, as long as the 
+    information gain is greater than alpha
+    '''
     attr_info_gain = {} # store info gain for each attr here
     for attr in df.columns:
         if attr != class_column:
             attr_info_gain[attr] = get_information_gain(pd.DataFrame({"attr": df[attr], "target": df[class_column]}))
 
+    # Check if the best attribute has any information gain
     return sorted(attr_info_gain.items(), key=lambda d: d[1])[-1][0]
+    if best_attribute[1] > alpha:
+        return best_attribute[0]
+    # if there is no gain, return None
+    else:
+        return None
 
 
 def get_information_gain(df):
@@ -69,6 +82,7 @@ def preprocess_dataframe(df, metadata = '', class_column = '', handle_continuous
     if handle_continuous:
         df = handle_continuous_attributes(df, metadata, class_column)
     df = df.fillna(method='bfill')
+    df = df.fillna(method='ffill')
 
 
     return df
