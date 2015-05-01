@@ -238,8 +238,8 @@ def predict(tree, data, predict_col = 'predicted'):
         data[predict_col] = ''
     # Iterate through each item in the set, and get the classification
     for i, row in data.iterrows():
-        predictions.append(predict_instance(tree, row))
-    data['predicted'] = pd.Series(predictions)
+        predictions.append(int(predict_instance(tree, row)))
+    data[predict_col] = pd.Series(predictions)
     return data
 
 
