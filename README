@@ -25,3 +25,11 @@ Predicting Test Data
 To predict the test data, run the label_test_data.py script, passing the test data after the -t flag, the pickled version of the tree after the -d flag, and the output file after the -o flag.
 
 Example: python label_test_data.py -t ../btest.csv -d pruned_tree.pkl -o btest_predicted.csv
+
+Generating Learning Curves
+=========================
+
+Run the decision_tree.py method using the --plot flag and passing in training data to create a tree with and validation data to test on. Use the -p flag to use pruning. The curve is saved to a file with the name given with the --plot_file flag.
+
+Example: 
+python decision_tree.py -d btrain.csv -m metadata.csv -v bvalidate.csv --plot --plot_file prune.png -p
