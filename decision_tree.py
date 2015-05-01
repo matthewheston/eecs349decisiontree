@@ -311,14 +311,18 @@ def get_class_column(metadata_file, dataFrame):
             print '"class" not in metadata'
 
 
-def make_learning_curve(training_df, validation_df, class_column, filename, training_sizes):
+def make_learning_curve(training_df, validation_df, class_column, filename, training_sizes, prune=False):
     accuracies = [] # store accuracies for each size here
 
     for size in training_sizes:
+        if "predicted" in validation_df.columns:
+            validation_df = validation_df.drop("predicted", axis=1)
         training = training_df.head(size)
         tree = make_tree(training, class_column)
-        labeled_tree = classify(tree, validation_df, class_column)
-        predict(labeled_tree, validation_df)
+        if prune:
+            labeled_tree = classify(tree, validation_df, class_column)
+            prune_tree(labeled_tree)
+        predict(tree, validation_df)
         validation_accuracy = accuracy_score(validation_df[class_column],
                 validation_df['predicted'])
         accuracies.append(validation_accuracy)
@@ -341,6 +345,8 @@ if __name__ == "__main__":
     parser.add_argument('-p', '--prune', action='store_true')
     parser.add_argument('-o', '--output_pickle',
             default='./finished_tree.pkl')
+    parser.add_argument('-g', '--plot', action='store_true')
+    parser.add_argument('-f', '--plot_file')
 
     args = parser.parse_args()
 
@@ -356,16 +362,22 @@ if __name__ == "__main__":
         validation_df = pd.read_csv(args.validation_data, na_values=["?"])
         validation_df = preprocess_dataframe(validation_df,
                 args.metadata, class_column, False)
-        labeled_tree = classify(tree, validation_df, class_column)
-        if args.prune:
-            print "Pruning tree..."
-            error = prune_tree(labeled_tree)
-        # Get validation data accuracy
-        print "Classifying accuracy..."
-        validation_df = predict(labeled_tree, validation_df)
-        validation_accuracy = accuracy_score(validation_df[class_column],
-                validation_df['predicted'])
-        print "Accuracy: {}".format(validation_accuracy)
+        if args.plot:
+            if not args.prune:
+                make_learning_curve(data_table, validation_df, class_column, args.plot_file, range(1000, len(data_table), 1000))
+            else:
+                make_learning_curve(data_table, validation_df, class_column, args.plot_file, range(1000, len(data_table), 1000), prune=True)
+        else:
+            labeled_tree = classify(tree, validation_df, class_column)
+            if args.prune:
+                print "Pruning tree..."
+                error = prune_tree(labeled_tree)
+            # Get validation data accuracy
+            print "Classifying accuracy..."
+            validation_df = predict(labeled_tree, validation_df)
+            validation_accuracy = accuracy_score(validation_df[class_column],
+                    validation_df['predicted'])
+            print "Accuracy: {}".format(validation_accuracy)
     else:
         # Change the name of "tree", so that it will output
         labeled_tree = tree
